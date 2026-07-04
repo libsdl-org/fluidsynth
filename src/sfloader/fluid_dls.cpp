@@ -1567,6 +1567,13 @@ fluid_dls_font::fluid_dls_font(fluid_synth_t *synth,
                 uint32_t cues; // sample count
                 READ32(this, cues);
 
+                // subchunk.size is uint32 and can be at max 0xFFFF'FFFF, therefore the max value of cues will be 0x3FFF'FFFF, as bigger
+                // values would require an uint64 chunksize, contrary to the RIFF spec. Catch possible overflow here.
+                if(cues > (std::numeric_limits<uint32_t>::max() - cbsize) / 4u)
+                {
+                    throw std::runtime_error{ "Too many poolcue records are contained in the ptbl chunk." };
+                }
+
                 if(cues * 4 + cbsize != subchunk.size)
                 {
                     throw std::runtime_error{ "DLS ptbl chunk has corrupted size" };
@@ -1697,9 +1704,10 @@ fluid_dls_font::fluid_dls_font(fluid_synth_t *synth,
             std::runtime_error{ "Exception thrown while allocating fluid_sample_t" });
     }
 
+    bool invalid_loops_were_sanitized = false;
     for(auto &sample : samples)
     {
-        auto &fluid = samples_fluid.emplace_back();
+        fluid_sample_t fluid{};
         fluid.start = sample.start;
         fluid.end = sample.end - 1;
         fluid.samplerate = sample.samplerate;
@@ -1713,6 +1721,7 @@ fluid_dls_font::fluid_dls_font(fluid_synth_t *synth,
             fluid.loopend = sample.start + wsmp.loop_start + wsmp.loop_length;
             fluid.origpitch = wsmp.unity_note;
             fluid.pitchadj = wsmp.fine_tune;
+            invalid_loops_were_sanitized |= fluid_sample_sanitize_loop(&fluid, sampledata.size() * sizeof(decltype(sampledata)::value_type));
         }
         else
         {
@@ -1725,6 +1734,18 @@ fluid_dls_font::fluid_dls_font(fluid_synth_t *synth,
         fluid.data = sampledata.data();
         fluid.sampletype = FLUID_SAMPLETYPE_MONO;
         fluid.default_modulators = this->sfont->default_mod_list;
+
+        if(fluid_sample_validate(&fluid, sampledata.size() * sizeof(decltype(sampledata)::value_type)) == FLUID_OK)
+        {
+            samples_fluid.push_back(std::move(fluid));
+        }
+    }
+
+    if(invalid_loops_were_sanitized)
+    {
+        FLUID_LOG(FLUID_WARN,
+                  "Some invalid DLS sample loops were sanitized! If you experience audible glitches, "
+                  "start fluidsynth in verbose mode for detailed information.");
     }
 
     // put info in dls_sample into region
@@ -2523,7 +2544,12 @@ inline void fluid_dls_font::parse_art(fluid_long_long_t offset, fluid_dls_articu
     uint32_t connblocks;
     READ32(this, connblocks);
 
-    if(cbsize + connblocks * 12 != chunk.size)
+    if(connblocks > (std::numeric_limits<uint32_t>::max() - cbsize) / 12u)
+    {
+        throw std::runtime_error{ "Too many ConnectionBlocks are contained in the articulator chunk." };
+    }
+
+    if(cbsize + connblocks * 12u != chunk.size)
     {
         throw std::runtime_error{ "art chunk has corrupted size" };
     }
