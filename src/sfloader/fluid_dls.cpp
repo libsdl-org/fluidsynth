@@ -3274,13 +3274,15 @@ static int fluid_dls_preset_noteon(fluid_preset_t *preset, fluid_synth_t *synth,
 
     for(auto &region : dlspreset->regions)
     {
-        if(!fluid_zone_inside_range(&region.range, tuned_key, vel))
+        auto *sample = dlspreset->samples_fluid + region.sampleindex;
+        // Check for zero-length samples, typically caused by samples that failed fluid_sample_validate()
+        if(!fluid_zone_inside_range(&region.range, tuned_key, vel) || sample->start == sample->end)
         {
             continue;
         }
 
         auto *voice = fluid_synth_alloc_voice_LOCAL(
-                          synth, dlspreset->samples_fluid + region.sampleindex, chan, adjusted_key, vel, &region.range);
+                          synth, sample, chan, adjusted_key, vel, &region.range);
 
         if(voice == nullptr)
         {
