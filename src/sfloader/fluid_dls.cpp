@@ -1742,7 +1742,6 @@ fluid_dls_font::fluid_dls_font(fluid_synth_t *synth,
 
         if(fluid_sample_validate(&fluid, sampledata.size() * sizeof(decltype(sampledata)::value_type)) != FLUID_OK)
         {
-            FLUID_LOG(FLUID_WARN, "Sample '%s' is invalid, purging", sample.name.c_str());
             fluid = {};
         }
     }
