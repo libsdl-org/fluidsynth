@@ -22,6 +22,7 @@ LOCAL_C_INCLUDES := \
 APP_STL := c++_shared
 
 LOCAL_CPP_FEATURES := exceptions rtti
+LOCAL_CPPFLAGS := -std=c++17
 
 LOCAL_EXPORT_C_INCLUDES += \
     $(LOCAL_PATH)/include \
