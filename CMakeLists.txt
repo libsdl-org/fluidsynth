@@ -367,7 +367,9 @@ if ( WIN32 )
   endif  ( MINGW )
 endif ( WIN32 )
 
-find_package ( GCEM REQUIRED )
+# SDL change: use vendored GCEM header-only library
+# find_package ( GCEM REQUIRED )
+set(GCEM_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/sdlorg_fork/gcem")
 
 find_library ( HAS_LIBM NAMES "m" )
 if ( HAS_LIBM )
