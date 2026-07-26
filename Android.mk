@@ -24,6 +24,7 @@ APP_STL := c++_shared
 LOCAL_CPP_FEATURES := exceptions rtti
 
 LOCAL_EXPORT_C_INCLUDES += \
+    $(LOCAL_PATH)/include \
     $(LOCAL_PATH)/sdlorg_fork/android/include
 
 LOCAL_SRC_FILES := \
